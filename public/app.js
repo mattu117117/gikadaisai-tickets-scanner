@@ -21,14 +21,13 @@ if (location.pathname.startsWith('/admin')) initAdmin();
 else initScanner();
 
 function initScanner() {
-  const state = { processId:'', storeName:'', staffName:'', count:0, total:0, scanner:null, fileScanner:null, queue:[], processing:false, recent:new Map(), finishing:false };
+  const state = { processId:'', storeName:'', staffName:'', count:0, total:0, scanner:null, queue:[], processing:false, recent:new Map(), finishing:false };
   $('scanner-app').classList.remove('hidden');
   $('admin-app').classList.add('hidden');
   $('start-button').addEventListener('click', () => startSession(false));
   $('manual-start-button').addEventListener('click', () => startSession(true));
   $('retry-camera-button').addEventListener('click', startCamera);
-  $('photo-scan-button').addEventListener('click', () => $('photo-scan-input').click());
-  $('photo-scan-input').addEventListener('change', scanPhoto);
+  $('manual-toggle-button').addEventListener('click', toggleManualEntry);
   $('install-app-button').addEventListener('click', showInstallHelp);
   $('close-install-help').addEventListener('click', () => $('install-help-modal').classList.add('hidden'));
   $('manual-submit').addEventListener('click', () => onDecoded($('manual-id').value));
@@ -86,7 +85,9 @@ function initScanner() {
       if (skipCamera) {
         $('reader').classList.add('hidden');
         $('camera-message').textContent = '手入力モードです。管理番号を入力して「登録」を押してください。';
-        $('manual-entry').open = true;
+        $('manual-entry').classList.remove('hidden');
+        $('manual-toggle-button').textContent = '管理番号入力を閉じる';
+        $('manual-id').focus();
       } else {
         await startCamera();
       }
@@ -114,10 +115,11 @@ function initScanner() {
       if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('getUserMedia unavailable'), { name:'NotSupportedError' });
       await state.scanner.start(
         { facingMode:'environment' },
-        { fps:8, qrbox:(w,h) => { const size=Math.floor(Math.min(w,h)*.72);return { width:size,height:size }; } },
+        { fps:15, disableFlip:true, qrbox:(w,h) => { const size=Math.floor(Math.min(w,h)*.84);return { width:size,height:size }; } },
         onDecoded,
         () => {}
       );
+      await applyDefaultZoom();
       $('camera-message').classList.add('hidden');
     } catch (error) {
       $('retry-camera-button').classList.remove('hidden');
@@ -126,20 +128,20 @@ function initScanner() {
     }
   }
 
-  async function scanPhoto(event) {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) return;
-    setBusy($('photo-scan-button'), true, 'QRを解析中...');
+  async function applyDefaultZoom() {
     try {
-      state.fileScanner ||= new Html5Qrcode('file-reader');
-      const result = await state.fileScanner.scanFile(file, true);
-      onDecoded(result);
-    } catch (_) {
-      showResult('error', '✕', 'QRを読み取れません', 'QR全体が明るく、はっきり写るように撮り直してください。');
-    } finally {
-      setBusy($('photo-scan-button'), false, 'QRを撮影・写真から読み取る');
-    }
+      const zoom = state.scanner.getRunningTrackCapabilities?.()?.zoom;
+      if (!zoom) return;
+      const target = Math.min(Number(zoom.max) || 1.5, Math.max(Number(zoom.min) || 1, 1.5));
+      await state.scanner.applyVideoConstraints({ zoom:target });
+    } catch (_) {}
+  }
+
+  function toggleManualEntry() {
+    const opening = $('manual-entry').classList.contains('hidden');
+    $('manual-entry').classList.toggle('hidden', !opening);
+    $('manual-toggle-button').textContent = opening ? '管理番号入力を閉じる' : '管理番号を入力';
+    if (opening) $('manual-id').focus();
   }
 
   function onDecoded(decodedText) {
@@ -259,7 +261,7 @@ function initScanner() {
     if (error?.name === 'NotSupportedError') return 'この開き方ではカメラを利用できません。SafariまたはChromeでURLを直接開いてください。';
     if (['NotReadableError','TrackStartError','AbortError'].includes(error?.name)) return 'ほかのアプリがカメラを使用しています。カメラアプリを閉じてからお試しください。';
     if (error?.name === 'OverconstrainedError') return '背面カメラを選択できませんでした。ページを再読み込みしてください。';
-    return `カメラを開始できませんでした（${error?.name || '不明'}）。「QRを撮影・写真から読み取る」も利用できます。`;
+    return `カメラを開始できませんでした（${error?.name || '不明'}）。管理番号の手入力も利用できます。`;
   }
   function feedback() { if (navigator.vibrate) navigator.vibrate(120); }
 }
