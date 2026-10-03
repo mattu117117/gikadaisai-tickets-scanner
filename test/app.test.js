@@ -20,7 +20,7 @@ test('all six spreadsheet-compatible tables are available', () => {
   assert.deepEqual(__test.TABLES.tickets.columns.map(column => column[1]), ['管理番号','区分','ID','連番','配布先','金額','状態','使用店舗','使用日時','確認担当者','処理ID']);
 });
 
-test('seed data contains 2,302 unique valid tickets and 81 stores', () => {
+test('seed data contains 2,142 unique valid tickets and 81 stores', () => {
   const storePath = new URL('../data/stores.json', import.meta.url);
   if (fs.existsSync(storePath)) {
     const stores = JSON.parse(fs.readFileSync(storePath));
@@ -29,7 +29,7 @@ test('seed data contains 2,302 unique valid tickets and 81 stores', () => {
   const ticketPath = new URL('../data/tickets.json', import.meta.url);
   if (fs.existsSync(ticketPath)) {
     const tickets = JSON.parse(fs.readFileSync(ticketPath));
-    assert.equal(tickets.length, 2302);
+    assert.equal(tickets.length, 2142);
     assert.equal(new Set(tickets.map(ticket => ticket.managementId)).size, tickets.length);
     for (const ticket of tickets) assert.match(ticket.managementId, /^[sdpm]\d{2}-\d{3}$/);
   }

@@ -15,7 +15,7 @@ Vercel + Neon Postgresで動く、スマートフォン向け商品券回収ア�
 
 ## データ
 
-`商品券.xlsx` の2,302件と店舗一覧を初回セットアップ時にNeonへ送信します。Excel、変換後JSON、内部要件は公開GitHubへコミットしない設定です。管理画面では次の6シート相当を表示・出力できます。
+商品券CSV（またはExcel）の2,142件と店舗一覧を初回セットアップ時にNeonへ送信します。元データ、変換後JSON、内部要件は公開GitHubへコミットしない設定です。管理画面では次の6シート相当を表示・出力できます。
 
 1. 商品券マスター
 2. 使用ログ
@@ -48,14 +48,14 @@ Vercelの `Settings` → `Environment Variables` に次を登録します。
 
 ### 4. デプロイしてDBを初期化・投入
 
-このフォルダに `商品券.xlsx` がある状態で、デプロイ完了後にPowerShellから次を実行します。
+商品券CSVまたはExcelがある状態で、デプロイ完了後にPowerShellから次を実行します。
 
 ```powershell
-.\scripts\prepare-data.ps1
+.\scripts\prepare-data.ps1 -Source "商品券.csv"
 npm.cmd run seed -- https://あなたのドメイン Vercelに設定したSETUP_TOKEN
 ```
 
-`ticketCount` が `2302`、`storeCount` が `81` なら完了です。セットアップ処理は再実行しても既存の使用状態を消しません。
+`ticketCount` が `2142`、`storeCount` が `81` なら完了です。セットアップ処理は再実行しても既存の使用状態を消しません。
 
 ### 5. 動作確認
 
@@ -90,7 +90,7 @@ npm.cmd test
 - `db/schema.sql`: PostgreSQLスキーマ
 - `data/`: 初期商品券・店舗データ
 - `scripts/build.mjs`: QRライブラリを公開ディレクトリへ配置
-- `scripts/prepare-data.ps1`: Excelを非公開の投入用JSONへ変換
+- `scripts/prepare-data.ps1`: CSVまたはExcelを非公開の投入用JSONへ変換
 - `scripts/seed.mjs`: 初期データをセットアップAPI経由でNeonへ投入
 
-`商品券.xlsx`、`data/*.json`、`要件定義.txt` は `.gitignore` の対象です。データはGitHubやVercelの静的ファイルへ含めず、セットアップAPIからNeonへ直接送ります。
+商品券CSV/Excel、`data/*.json`、`要件定義.txt` は `.gitignore` の対象です。データはGitHubやVercelの静的ファイルへ含めず、セットアップAPIからNeonへ直接送ります。

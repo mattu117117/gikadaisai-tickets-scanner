@@ -5,4 +5,5 @@ node_modules/
 npm-debug.log*
 data/*.json
 商品券.xlsx
+商品券*.csv
 要件定義.txt
