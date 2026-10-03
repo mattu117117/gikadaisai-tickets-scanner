@@ -1,0 +1,19 @@
+{
+  "name": "gikadaisai-tickets-scanner",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "seed": "node scripts/seed.mjs",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.2",
+    "html5-qrcode": "^2.3.8"
+  }
+}

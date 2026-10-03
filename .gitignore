@@ -1,0 +1,8 @@
+node_modules/
+.vercel/
+.env
+.env.local
+npm-debug.log*
+data/*.json
+商品券.xlsx
+要件定義.txt

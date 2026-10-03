@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#173f5f">
+  <title>商品券 回収</title>
+  <link rel="stylesheet" href="/styles.css">
+  <style>.toolbar-actions{display:flex;gap:8px}@media(max-width:680px){.toolbar-actions{display:grid;grid-template-columns:1fr 1fr}.toolbar-actions button{width:100%}}</style>
+</head>
+<body>
+  <main id="scanner-app" class="app-shell">
+    <section id="setup-screen" class="screen active">
+      <div class="brand-mark">祭</div>
+      <h1>商品券 回収</h1>
+      <p class="lead">担当者名と店舗を選び、カメラを許可して開始してください。</p>
+      <div id="startup-message" class="message hidden" role="alert"></div>
+      <label for="staff-name">スキャン担当者</label>
+      <input id="staff-name" maxlength="50" autocomplete="name" placeholder="あなたの名前">
+      <label for="store-select">店舗</label>
+      <select id="store-select" disabled><option>読み込み中...</option></select>
+      <button id="start-button" class="primary" disabled>カメラを許可して回収開始</button>
+      <button id="manual-start-button" class="secondary session-cancel" disabled>カメラを使わず手入力で開始</button>
+      <p class="hint">Chromeの確認画面では「許可」を選んでください。VercelのHTTPSページから直接カメラを開きます。</p>
+      <a class="admin-link" href="/admin">データ閲覧・CSV出力</a>
+    </section>
+
+    <section id="scan-screen" class="screen">
+      <header class="session-header">
+        <div><span>店舗</span><strong id="current-store"></strong></div>
+        <div><span>担当</span><strong id="current-staff"></strong></div>
+        <div><span>処理ID</span><strong id="current-process"></strong></div>
+      </header>
+      <div class="totals">
+        <div><span>読取済み</span><strong><b id="scan-count">0</b>枚</strong></div>
+        <div><span>合計金額</span><strong><b id="scan-total">0</b>円</strong></div>
+      </div>
+      <div id="reader"></div>
+      <div id="camera-message" class="message info">カメラをQRコードへ向けてください。</div>
+      <button id="retry-camera-button" class="secondary hidden">カメラをもう一度起動</button>
+      <details id="manual-entry" class="manual-entry">
+        <summary>カメラを使わず管理番号を入力</summary>
+        <div class="inline-form"><input id="manual-id" autocapitalize="none" autocomplete="off" placeholder="s01-001"><button id="manual-submit" class="secondary">登録</button></div>
+      </details>
+      <div id="result" class="result neutral" role="status" aria-live="assertive">
+        <div id="result-icon" class="result-icon">―</div>
+        <div id="result-title">読取待機中</div>
+        <div id="result-detail"></div>
+      </div>
+      <button id="finish-button" class="danger">回収終了</button>
+      <button id="cancel-session-button" class="secondary session-cancel">回収をキャンセル</button>
+    </section>
+
+    <section id="complete-screen" class="screen centered">
+      <div class="complete-icon">✓</div>
+      <h1>回収を完了しました</h1>
+      <dl class="summary-list">
+        <div><dt>店舗</dt><dd id="complete-store"></dd></div>
+        <div><dt>枚数</dt><dd><span id="complete-count"></span>枚</dd></div>
+        <div><dt>合計</dt><dd><span id="complete-total"></span>円</dd></div>
+      </dl>
+      <button id="new-session-button" class="primary">別の回収を開始</button>
+    </section>
+  </main>
+
+  <main id="admin-app" class="admin-shell hidden">
+    <header class="admin-header"><div><p class="eyebrow">GIKADAISAI</p><h1>商品券データ</h1></div><a href="/">スキャナーへ</a></header>
+    <section id="admin-login" class="login-card">
+      <h2>閲覧用ログイン</h2>
+      <p>データの検索とCSV出力だけができます。画面からの編集はできません。</p>
+      <label for="admin-pin">管理者PIN</label>
+      <input id="admin-pin" type="password" inputmode="numeric" autocomplete="current-password">
+      <button id="admin-login-button" class="primary">データを表示</button>
+      <div id="admin-error" class="message error hidden" role="alert"></div>
+    </section>
+    <section id="admin-dashboard" class="hidden">
+      <div id="admin-summary" class="summary-cards"></div>
+      <nav id="table-tabs" class="table-tabs" aria-label="データ種類"></nav>
+      <div class="data-toolbar">
+        <label class="search-box" for="data-search"><span>検索</span><input id="data-search" type="search" placeholder="管理番号、店舗、担当者など"></label>
+        <div class="toolbar-actions"><button id="copy-table" class="secondary compact">スプレッドシートへコピー</button><button id="export-csv" class="secondary compact">CSV出力</button></div>
+      </div>
+      <p id="data-count" class="data-count"></p>
+      <div class="table-wrap"><table id="data-table"><thead></thead><tbody></tbody></table></div>
+      <div class="pager"><button id="prev-page" class="secondary compact">前へ</button><span id="page-label"></span><button id="next-page" class="secondary compact">次へ</button></div>
+    </section>
+  </main>
+
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card"><h2 id="confirm-title"></h2><p id="confirm-text"></p><div class="modal-actions"><button id="confirm-no" class="secondary">戻る</button><button id="confirm-yes" class="primary">実行する</button></div></div>
+  </div>
+
+  <div id="camera-help-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h2>Chromeでカメラを許可</h2>
+      <ol id="camera-help-steps" class="permission-steps"></ol>
+      <p class="hint">設定後はページを再読み込みして、もう一度開始してください。</p>
+      <button id="reload-camera-page" class="primary">設定後に再読み込み</button>
+      <button id="close-camera-help" class="secondary modal-close">閉じる</button>
+    </div>
+  </div>
+
+  <script src="/vendor/html5-qrcode.min.js"></script>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
