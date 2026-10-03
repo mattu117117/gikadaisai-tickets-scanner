@@ -58,7 +58,7 @@ test('scanner and read-only admin controls exist', () => {
   assert.match(client, /facingMode:'environment'/);
   assert.match(client, /fps:15/);
   assert.match(client, /zoom:target/);
-  assert.match(client, /Html5QrcodeSupportedFormats\.QR_CODE/);
+  assert.match(client, /function cameraErrorName/);
   assert.doesNotMatch(html, /max-height:42vh/);
   assert.match(client, /format:'tsv'/);
   assert.match(client, /resetTraining/);

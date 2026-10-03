@@ -109,15 +109,12 @@ function initScanner() {
         await state.scanner.clear();
       } catch (_) {}
     }
-    state.scanner = new Html5Qrcode('reader', {
-      formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
-      useBarCodeDetectorIfSupported:true
-    });
+    state.scanner = new Html5Qrcode('reader');
     try {
       if (!window.isSecureContext) throw Object.assign(new Error('HTTPS required'), { name:'SecurityError' });
       if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('getUserMedia unavailable'), { name:'NotSupportedError' });
       await state.scanner.start(
-        { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} },
+        { facingMode:'environment' },
         { fps:15, disableFlip:true, qrbox:(w,h) => { const size=Math.floor(Math.min(w,h)*.84);return { width:size,height:size }; } },
         onDecoded,
         () => {}
@@ -257,14 +254,21 @@ function initScanner() {
   function showScreen(id) { document.querySelectorAll('#scanner-app .screen').forEach(el => el.classList.remove('active')); $(id).classList.add('active'); scrollTo(0,0); }
   function showResult(kind,icon,title,detail) { $('result').className=`result ${kind}`; $('result-icon').textContent=icon; $('result-title').textContent=title; $('result-detail').textContent=detail||''; }
   function showSetupMessage(text,kind) { const el=$('startup-message'); el.textContent=text; el.className=`message ${kind}`; }
-  function isPermissionError(error) { return ['NotAllowedError','PermissionDeniedError','SecurityError'].includes(error?.name); }
+  function cameraErrorName(error) {
+    if (error?.name && error.name !== 'Error') return error.name;
+    const text = String(error?.message || error || '');
+    return ['NotAllowedError','PermissionDeniedError','SecurityError','NotFoundError','DevicesNotFoundError','NotReadableError','TrackStartError','AbortError','OverconstrainedError','NotSupportedError'].find(name => text.includes(name)) || '';
+  }
+  function isPermissionError(error) { return ['NotAllowedError','PermissionDeniedError','SecurityError'].includes(cameraErrorName(error)); }
   function cameraErrorMessage(error) {
+    const name = cameraErrorName(error);
     if (isPermissionError(error)) return 'カメラが許可されていません。表示された手順で許可してください。';
-    if (['NotFoundError','DevicesNotFoundError'].includes(error?.name)) return '使用できるカメラが見つかりません。';
-    if (error?.name === 'NotSupportedError') return 'この開き方ではカメラを利用できません。SafariまたはChromeでURLを直接開いてください。';
-    if (['NotReadableError','TrackStartError','AbortError'].includes(error?.name)) return 'ほかのアプリがカメラを使用しています。カメラアプリを閉じてからお試しください。';
-    if (error?.name === 'OverconstrainedError') return '背面カメラを選択できませんでした。ページを再読み込みしてください。';
-    return `カメラを開始できませんでした（${error?.name || '不明'}）。管理番号の手入力も利用できます。`;
+    if (['NotFoundError','DevicesNotFoundError'].includes(name)) return '使用できるカメラが見つかりません。';
+    if (name === 'NotSupportedError') return 'この開き方ではカメラを利用できません。SafariまたはChromeでURLを直接開いてください。';
+    if (['NotReadableError','TrackStartError','AbortError'].includes(name)) return 'ほかのアプリがカメラを使用しています。カメラアプリを閉じてからお試しください。';
+    if (name === 'OverconstrainedError') return '背面カメラを選択できませんでした。ページを再読み込みしてください。';
+    const detail = String(error?.message || error || '不明').slice(0,120);
+    return `カメラを開始できませんでした（${detail}）。管理番号の手入力も利用できます。`;
   }
   function feedback() { if (navigator.vibrate) navigator.vibrate(120); }
 }
