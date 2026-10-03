@@ -5,7 +5,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 30,
-      "includeFiles": ["db/schema.sql"]
+      "includeFiles": "db/schema.sql"
     }
   },
   "rewrites": [
