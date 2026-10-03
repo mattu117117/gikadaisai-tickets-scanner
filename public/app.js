@@ -109,12 +109,15 @@ function initScanner() {
         await state.scanner.clear();
       } catch (_) {}
     }
-    state.scanner = new Html5Qrcode('reader');
+    state.scanner = new Html5Qrcode('reader', {
+      formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE],
+      useBarCodeDetectorIfSupported:true
+    });
     try {
       if (!window.isSecureContext) throw Object.assign(new Error('HTTPS required'), { name:'SecurityError' });
       if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('getUserMedia unavailable'), { name:'NotSupportedError' });
       await state.scanner.start(
-        { facingMode:'environment' },
+        { facingMode:'environment', width:{ideal:1280}, height:{ideal:720} },
         { fps:15, disableFlip:true, qrbox:(w,h) => { const size=Math.floor(Math.min(w,h)*.84);return { width:size,height:size }; } },
         onDecoded,
         () => {}
