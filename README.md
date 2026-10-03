@@ -44,6 +44,17 @@ Vercelの `Settings` → `Environment Variables` に次を登録します。
 | `ADMIN_PIN` | 管理画面で使用する6桁以上のPIN |
 | `SETUP_TOKEN` | 初回DB作成専用の長いランダム文字列 |
 
+## 練習環境
+
+本番と同じGitHubリポジトリから別のVercelプロジェクトを作り、別のNeonデータベースを接続します。練習側だけ環境変数 `APP_ENV=training` を設定してください。
+
+- 画面上部に「練習環境」を常時表示
+- 管理画面から使用履歴・回収セッション・取消ログを初期化
+- 全商品券を未使用へ戻して繰り返し練習
+- `APP_ENV=training` ではない本番環境では初期化APIを拒否
+
+練習環境にも `DATABASE_URL`、`ADMIN_PIN`、初期投入時だけ `SETUP_TOKEN` が必要です。商品券と店舗を投入した後、`SETUP_TOKEN` は削除できます。
+
 値は `.env.example` を参考にし、実際の秘密情報をGitへコミットしないでください。
 
 ### 4. デプロイしてDBを初期化・投入

@@ -46,7 +46,7 @@ export default async function handler(req, res) {
   try {
     const sql = database();
     switch (action) {
-      case 'health': return send(res, 200, { success:true, service:'gikadaisai-tickets-scanner' });
+      case 'health': return send(res, 200, { success:true, service:'gikadaisai-tickets-scanner', environment:isTraining()?'training':'production' });
       case 'setup': return await setup(req, res, sql);
       case 'stores': return await listStores(req, res, sql);
       case 'startSession': return await startSession(req, res, sql);
@@ -57,6 +57,7 @@ export default async function handler(req, res) {
       case 'adminSummary': return await adminSummary(req, res, sql);
       case 'adminData': return await adminData(req, res, sql);
       case 'adminExport': return await adminExport(req, res, sql);
+      case 'resetTraining': return await resetTraining(req, res, sql);
       default: return send(res, 404, { success:false, message:'APIが見つかりません。' });
     }
   } catch (error) {
@@ -104,7 +105,7 @@ async function setup(req, res, sql) {
 async function listStores(req, res, sql) {
   requireMethod(req, 'GET');
   const rows = await sql`SELECT store_id, store_name FROM stores WHERE is_active=true ORDER BY store_id`;
-  return send(res, 200, { success:true, stores:rows.map(row => ({ id:row.store_id, name:row.store_name })) });
+  return send(res, 200, { success:true, environment:isTraining()?'training':'production', stores:rows.map(row => ({ id:row.store_id, name:row.store_name })) });
 }
 
 async function startSession(req, res, sql) {
@@ -216,7 +217,20 @@ async function cancelSession(req, res, sql) {
 async function adminSummary(req, res, sql) {
   requireAdmin(req);
   const [row] = await sql`SELECT count(*)::int AS ticket_count,count(*) FILTER (WHERE status='使用済み')::int AS used_count,coalesce(sum(amount) FILTER (WHERE status='使用済み'),0)::int AS used_amount FROM tickets`;
-  return send(res, 200, { success:true, ticketCount:row.ticket_count, usedCount:row.used_count, usedAmount:row.used_amount });
+  return send(res, 200, { success:true, environment:isTraining()?'training':'production', ticketCount:row.ticket_count, usedCount:row.used_count, usedAmount:row.used_amount });
+}
+
+async function resetTraining(req, res, sql) {
+  requireMethod(req, 'POST');
+  requireAdmin(req);
+  if (!isTraining()) throw publicError(403, '本番環境は初期化できません。');
+  await sql`UPDATE tickets SET status='未使用',used_store=NULL,used_at=NULL,confirmed_by=NULL,process_id=NULL`;
+  await sql`DELETE FROM usage_logs`;
+  await sql`DELETE FROM cancellations`;
+  await sql`DELETE FROM sessions`;
+  await sql`ALTER SEQUENCE session_number_seq RESTART WITH 1`;
+  const [row] = await sql`SELECT count(*)::int AS ticket_count FROM tickets`;
+  return send(res, 200, { success:true, ticketCount:row.ticket_count, message:'練習データを初期化しました。' });
 }
 
 async function adminData(req, res, sql) {
@@ -265,6 +279,7 @@ function tableConfig(name) {
 }
 function sessionResponse(session) { return { success:true,status:'completed',processId:session.process_id,storeName:session.store_name,staffName:session.staff_name,finishedAt:formatDate(session.finished_at),count:session.ticket_count,totalAmount:session.total_amount }; }
 function normalizeId(value) { return String(value ?? '').trim().toLowerCase(); }
+function isTraining() { return process.env.APP_ENV === 'training'; }
 function dateKeyTokyo() { const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const value=type=>parts.find(part=>part.type===type).value;return `${value('year')}${value('month')}${value('day')}`; }
 function formatDate(value) { return value ? new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(value)).replace(/\//g,'/') : ''; }
 function exportValue(value,type) { if(value==null)return '';if(type==='date')return formatDate(value);if(type==='boolean')return value?'有効':'無効';return value; }
@@ -277,4 +292,4 @@ function publicError(statusCode, publicMessage) { const error=new Error(publicMe
 function send(res,status,data) { res.setHeader('cache-control','no-store');return res.status(status).json(data); }
 function setSecurityHeaders(res) { res.setHeader('x-content-type-options','nosniff');res.setHeader('referrer-policy','same-origin'); }
 
-export const __test = { normalizeId, dateKeyTokyo, formatDate, csvCell, tsvCell, exportValue, TABLES };
+export const __test = { normalizeId, isTraining, dateKeyTokyo, formatDate, csvCell, tsvCell, exportValue, TABLES };

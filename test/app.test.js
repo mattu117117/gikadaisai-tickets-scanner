@@ -8,6 +8,16 @@ test('management IDs are normalized', () => {
   assert.match(__test.dateKeyTokyo(), /^\d{8}$/);
 });
 
+test('training mode is enabled only by the explicit environment value', () => {
+  const previous = process.env.APP_ENV;
+  process.env.APP_ENV = 'training';
+  assert.equal(__test.isTraining(), true);
+  process.env.APP_ENV = 'production';
+  assert.equal(__test.isTraining(), false);
+  if (previous === undefined) delete process.env.APP_ENV;
+  else process.env.APP_ENV = previous;
+});
+
 test('spreadsheet exports escape values safely', () => {
   assert.equal(__test.csvCell('a,b'), '"a,b"');
   assert.equal(__test.csvCell('a"b'), '"a""b"');
@@ -41,7 +51,10 @@ test('scanner and read-only admin controls exist', () => {
   const schema = fs.readFileSync(new URL('../db/schema.sql', import.meta.url), 'utf8');
   assert.match(html, /カメラを許可して回収開始/);
   assert.match(html, /id="copy-table"/);
+  assert.match(html, /id="reset-training"/);
   assert.match(client, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(client, /format:'tsv'/);
+  assert.match(client, /resetTraining/);
+  assert.match(fs.readFileSync(new URL('../api/index.js', import.meta.url), 'utf8'), /本番環境は初期化できません/);
   assert.match(schema, /one_active_session_per_store/);
 });

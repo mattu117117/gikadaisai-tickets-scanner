@@ -39,6 +39,7 @@ function initScanner() {
   async function loadStores() {
     try {
       const data = await api('stores');
+      if (data.environment === 'training') markTrainingMode();
       $('store-select').innerHTML = '<option value="">店舗を選択</option>';
       data.stores.forEach(store => {
         const option = document.createElement('option');
@@ -259,6 +260,7 @@ function initAdmin() {
   $('next-page').addEventListener('click', () => { if (state.page*state.pageSize<state.total) {state.page++;loadTable();} });
   $('export-csv').addEventListener('click', exportCsv);
   $('copy-table').addEventListener('click', copyTable);
+  $('reset-training').addEventListener('click', resetTraining);
   if (state.pin) login(true);
 
   async function login(silent=false) {
@@ -270,6 +272,10 @@ function initAdmin() {
       const summary = await api('adminSummary', { pin });
       sessionStorage.setItem('adminPin', pin);
       renderSummary(summary);
+      if (summary.environment === 'training') {
+        markTrainingMode();
+        $('training-tools').classList.remove('hidden');
+      }
       renderTabs();
       $('admin-login').classList.add('hidden');
       $('admin-dashboard').classList.remove('hidden');
@@ -330,6 +336,18 @@ function initAdmin() {
       setTimeout(()=>setBusy($('copy-table'),false,'スプレッドシートへコピー'),1400);
     } catch(error){alert(error.message);setBusy($('copy-table'),false,'スプレッドシートへコピー');}
   }
+  async function resetTraining() {
+    if (!await confirmAction('練習データを初期化', '使用ログ・回収セッション・取消ログを削除し、全商品券を未使用へ戻します。\n本番環境のデータには影響しません。', '初期化する')) return;
+    setBusy($('reset-training'),true,'初期化中...');
+    try {
+      const result = await api('resetTraining',{method:'POST',pin:state.pin});
+      alert(`${result.message}\n商品券 ${money(result.ticketCount)}件`);
+      location.reload();
+    } catch(error) {
+      alert(error.message);
+      setBusy($('reset-training'),false,'練習データを初期化');
+    }
+  }
 }
 
 function formatCell(value,type) {
@@ -340,4 +358,9 @@ function formatCell(value,type) {
   return String(value);
 }
 function setBusy(button,busy,label){button.disabled=busy;button.textContent=label;}
+function markTrainingMode(){
+  $('environment-banner').classList.remove('hidden');
+  document.body.classList.add('training-environment');
+  if (!document.title.startsWith('【練習】')) document.title=`【練習】${document.title}`;
+}
 function confirmAction(title,text,yesLabel){return new Promise(resolve=>{const modal=$('confirm-modal');$('confirm-title').textContent=title;$('confirm-text').textContent=text;$('confirm-text').style.whiteSpace='pre-line';$('confirm-yes').textContent=yesLabel;modal.classList.remove('hidden');const done=value=>{modal.classList.add('hidden');$('confirm-no').onclick=null;$('confirm-yes').onclick=null;resolve(value);};$('confirm-no').onclick=()=>done(false);$('confirm-yes').onclick=()=>done(true);});}

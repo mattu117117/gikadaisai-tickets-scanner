@@ -6,9 +6,10 @@
   <meta name="theme-color" content="#173f5f">
   <title>商品券 回収</title>
   <link rel="stylesheet" href="/styles.css">
-  <style>.toolbar-actions{display:flex;gap:8px}@media(max-width:680px){.toolbar-actions{display:grid;grid-template-columns:1fr 1fr}.toolbar-actions button{width:100%}}</style>
+  <style>.toolbar-actions{display:flex;gap:8px}.environment-banner{position:sticky;top:0;z-index:90;padding:11px 16px;background:#8a4b00;color:#fff;text-align:center;font-weight:900}.training-environment{--navy:#704000;--blue:#9a5700;--bg:#fff4df}.training-tools{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:18px;padding:16px 18px;border:2px solid #d68a24;border-radius:14px;background:#fff4df}.training-tools p{margin:4px 0 0;color:#704000}.training-tools .danger{margin:0;white-space:nowrap}@media(max-width:680px){.toolbar-actions{display:grid;grid-template-columns:1fr 1fr}.toolbar-actions button{width:100%}.training-tools{display:block}.training-tools button{width:100%;margin-top:12px}}</style>
 </head>
 <body>
+  <div id="environment-banner" class="environment-banner hidden">練習環境 — ここでの操作は本番データに影響しません</div>
   <main id="scanner-app" class="app-shell">
     <section id="setup-screen" class="screen active">
       <div class="brand-mark">祭</div>
@@ -75,6 +76,7 @@
     </section>
     <section id="admin-dashboard" class="hidden">
       <div id="admin-summary" class="summary-cards"></div>
+      <div id="training-tools" class="training-tools hidden"><div><strong>練習環境の初期化</strong><p>使用履歴と回収セッションを削除し、全商品券を未使用へ戻します。</p></div><button id="reset-training" class="danger compact">練習データを初期化</button></div>
       <nav id="table-tabs" class="table-tabs" aria-label="データ種類"></nav>
       <div class="data-toolbar">
         <label class="search-box" for="data-search"><span>検索</span><input id="data-search" type="search" placeholder="管理番号、店舗、担当者など"></label>
