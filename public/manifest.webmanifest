@@ -1,0 +1,19 @@
+{
+  "name": "技科大祭 商品券回収",
+  "short_name": "商品券回収",
+  "description": "技科大祭の商品券QRコードを読み取る回収アプリ",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#173f5f",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

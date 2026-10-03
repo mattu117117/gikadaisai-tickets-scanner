@@ -21,12 +21,16 @@ if (location.pathname.startsWith('/admin')) initAdmin();
 else initScanner();
 
 function initScanner() {
-  const state = { processId:'', storeName:'', staffName:'', count:0, total:0, scanner:null, cameraId:null, queue:[], processing:false, recent:new Map(), finishing:false };
+  const state = { processId:'', storeName:'', staffName:'', count:0, total:0, scanner:null, fileScanner:null, queue:[], processing:false, recent:new Map(), finishing:false };
   $('scanner-app').classList.remove('hidden');
   $('admin-app').classList.add('hidden');
   $('start-button').addEventListener('click', () => startSession(false));
   $('manual-start-button').addEventListener('click', () => startSession(true));
   $('retry-camera-button').addEventListener('click', startCamera);
+  $('photo-scan-button').addEventListener('click', () => $('photo-scan-input').click());
+  $('photo-scan-input').addEventListener('change', scanPhoto);
+  $('install-app-button').addEventListener('click', showInstallHelp);
+  $('close-install-help').addEventListener('click', () => $('install-help-modal').classList.add('hidden'));
   $('manual-submit').addEventListener('click', () => onDecoded($('manual-id').value));
   $('manual-id').addEventListener('keydown', event => { if (event.key === 'Enter') onDecoded(event.currentTarget.value); });
   $('finish-button').addEventListener('click', finishSession);
@@ -66,8 +70,6 @@ function initScanner() {
     $('manual-start-button').disabled = true;
     trigger.textContent = skipCamera ? '回収を開始中...' : 'カメラを確認中...';
     try {
-      if (!skipCamera) state.cameraId = await requestCameraPermission();
-      trigger.textContent = '回収を開始中...';
       const result = await api('startSession', { method:'POST', body:{ staffName, storeId } });
       if (!result.success) {
         const message = result.status === 'store_in_use'
@@ -98,22 +100,6 @@ function initScanner() {
     }
   }
 
-  async function requestCameraPermission() {
-    if (!window.isSecureContext) throw new Error('HTTPSのVercel URLで開いてください。');
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('このブラウザはカメラに対応していません。Chrome最新版で開いてください。');
-    let stream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false });
-      const track = stream.getVideoTracks()[0];
-      return track?.getSettings?.().deviceId || null;
-    } catch (error) {
-      if (isPermissionError(error)) showCameraHelp();
-      throw new Error(cameraErrorMessage(error));
-    } finally {
-      stream?.getTracks().forEach(track => track.stop());
-    }
-  }
-
   async function startCamera() {
     $('retry-camera-button').classList.add('hidden');
     if (state.scanner) {
@@ -124,13 +110,35 @@ function initScanner() {
     }
     state.scanner = new Html5Qrcode('reader');
     try {
-      const camera = { facingMode:{ ideal:'environment' } };
-      await state.scanner.start(camera, { fps:10, qrbox:(w,h) => ({ width:Math.min(w,h)*.72, height:Math.min(w,h)*.72 }), aspectRatio:1 }, onDecoded, () => {});
+      if (!window.isSecureContext) throw Object.assign(new Error('HTTPS required'), { name:'SecurityError' });
+      if (!navigator.mediaDevices?.getUserMedia) throw Object.assign(new Error('getUserMedia unavailable'), { name:'NotSupportedError' });
+      await state.scanner.start(
+        { facingMode:'environment' },
+        { fps:8, qrbox:(w,h) => { const size=Math.floor(Math.min(w,h)*.72);return { width:size,height:size }; } },
+        onDecoded,
+        () => {}
+      );
       $('camera-message').classList.add('hidden');
     } catch (error) {
       $('retry-camera-button').classList.remove('hidden');
       if (isPermissionError(error)) showCameraHelp();
       showResult('error', '✕', 'カメラを開始できません', cameraErrorMessage(error));
+    }
+  }
+
+  async function scanPhoto(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    setBusy($('photo-scan-button'), true, 'QRを解析中...');
+    try {
+      state.fileScanner ||= new Html5Qrcode('file-reader');
+      const result = await state.fileScanner.scanFile(file, true);
+      onDecoded(result);
+    } catch (_) {
+      showResult('error', '✕', 'QRを読み取れません', 'QR全体が明るく、はっきり写るように撮り直してください。');
+    } finally {
+      setBusy($('photo-scan-button'), false, 'QRを撮影・写真から読み取る');
     }
   }
 
@@ -216,10 +224,19 @@ function initScanner() {
   function showCameraHelp() {
     const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const steps = isIOS
-      ? ['iPhoneの「設定」→「アプリ」→「Chrome」→「カメラ」をオンにします。','Chromeへ戻り、アドレスバー左側のカメラマーク→サイトの権限もオンにします。','この画面の「設定後に再読み込み」を押します。']
+      ? ['iPhoneの「設定」→「プライバシーとセキュリティ」→「カメラ」で、Chrome（または使用中のWebアプリ）をオンにします。','Chromeではアドレスバー左側のカメラマークを押し、このサイトの権限をオンにします。','直らない場合はSafariでこのURLを直接開き、カメラを許可してください。']
       : ['アドレスバー左側のサイト情報マーク→「権限」を開きます。','「カメラ」→「許可」を選びます。','項目がなければChromeの「︙」→「設定」→「サイトの設定」→「カメラ」で、このVercelサイトを許可します。'];
     $('camera-help-steps').replaceChildren(...steps.map(text => Object.assign(document.createElement('li'), { textContent:text })));
     $('camera-help-modal').classList.remove('hidden');
+  }
+
+  function showInstallHelp() {
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const steps = isIOS
+      ? ['SafariまたはChromeでこのページを開きます。','共有ボタンを押し、「ホーム画面に追加」を選びます。','「Webアプリとして開く」をオンにして「追加」を押します。']
+      : ['Chrome右上の「︙」を押します。','「ホーム画面に追加」または「アプリをインストール」を選びます。','追加後はホーム画面のアイコンから起動します。'];
+    $('install-help-steps').replaceChildren(...steps.map(text => Object.assign(document.createElement('li'), { textContent:text })));
+    $('install-help-modal').classList.remove('hidden');
   }
 
   function restoreDraft() {
@@ -239,8 +256,10 @@ function initScanner() {
   function cameraErrorMessage(error) {
     if (isPermissionError(error)) return 'カメラが許可されていません。表示された手順で許可してください。';
     if (['NotFoundError','DevicesNotFoundError'].includes(error?.name)) return '使用できるカメラが見つかりません。';
-    if (['NotReadableError','TrackStartError'].includes(error?.name)) return 'ほかのアプリがカメラを使用しています。閉じてからお試しください。';
-    return 'カメラを開始できませんでした。ページを再読み込みしてください。';
+    if (error?.name === 'NotSupportedError') return 'この開き方ではカメラを利用できません。SafariまたはChromeでURLを直接開いてください。';
+    if (['NotReadableError','TrackStartError','AbortError'].includes(error?.name)) return 'ほかのアプリがカメラを使用しています。カメラアプリを閉じてからお試しください。';
+    if (error?.name === 'OverconstrainedError') return '背面カメラを選択できませんでした。ページを再読み込みしてください。';
+    return `カメラを開始できませんでした（${error?.name || '不明'}）。「QRを撮影・写真から読み取る」も利用できます。`;
   }
   function feedback() { if (navigator.vibrate) navigator.vibrate(120); }
 }

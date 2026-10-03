@@ -52,7 +52,10 @@ test('scanner and read-only admin controls exist', () => {
   assert.match(html, /カメラを許可して回収開始/);
   assert.match(html, /id="copy-table"/);
   assert.match(html, /id="reset-training"/);
-  assert.match(client, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(html, /manifest\.webmanifest/);
+  assert.match(html, /id="photo-scan-input"/);
+  assert.match(client, /facingMode:'environment'/);
+  assert.match(client, /scanFile\(file, true\)/);
   assert.match(client, /format:'tsv'/);
   assert.match(client, /resetTraining/);
   assert.match(fs.readFileSync(new URL('../api/index.js', import.meta.url), 'utf8'), /本番環境は初期化できません/);
