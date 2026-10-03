@@ -55,6 +55,16 @@ Vercelの `Settings` → `Environment Variables` に次を登録します。
 
 練習環境にも `DATABASE_URL`、`ADMIN_PIN`、初期投入時だけ `SETUP_TOKEN` が必要です。商品券と店舗を投入した後、`SETUP_TOKEN` は削除できます。
 
+### 安全な更新手順
+
+1. 変更は必ず `training` ブランチへ反映する
+2. 練習サイトでカメラ、手入力、二重使用防止、管理画面、初期化を確認する
+3. `npm test` が成功したことを確認する
+4. 問題がない場合だけ `training` を `main` へ取り込む
+5. 本番サイトのヘルスチェックと主要画面を確認する
+
+Vercelの本番プロジェクトは `main`、練習プロジェクトは `training` をProduction Branchとして追跡します。両環境は別々のNeonデータベースへ接続します。
+
 値は `.env.example` を参考にし、実際の秘密情報をGitへコミットしないでください。
 
 ### 4. デプロイしてDBを初期化・投入
