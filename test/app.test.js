@@ -60,6 +60,7 @@ test('scanner and read-only admin controls exist', () => {
   assert.match(client, /zoom:target/);
   assert.match(client, /function cameraErrorName/);
   assert.doesNotMatch(html, /max-height:42vh/);
+  assert.match(html, /grid-template-columns:28px 1fr/);
   assert.match(client, /format:'tsv'/);
   assert.match(client, /resetTraining/);
   assert.match(fs.readFileSync(new URL('../api/index.js', import.meta.url), 'utf8'), /本番環境は初期化できません/);
