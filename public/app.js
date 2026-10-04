@@ -281,8 +281,7 @@ function initAdmin() {
   const tables = [
     ['tickets','商品券マスター'],['usage_logs','使用ログ'],['sessions','回収セッション'],['stores','店舗マスター'],['staff','担当者マスター'],['cancellations','取消ログ']
   ];
-  $('admin-login-button').addEventListener('click', login);
-  $('admin-pin').addEventListener('keydown', event => { if (event.key === 'Enter') login(); });
+  $('admin-login').addEventListener('submit', event => { event.preventDefault(); login(); });
   $('data-search').addEventListener('input', event => { clearTimeout(state.timer); state.timer=setTimeout(()=>{state.query=event.target.value.trim();state.page=1;loadTable();},250); });
   $('prev-page').addEventListener('click', () => { if (state.page>1) {state.page--;loadTable();} });
   $('next-page').addEventListener('click', () => { if (state.page*state.pageSize<state.total) {state.page++;loadTable();} });
