@@ -55,6 +55,9 @@ test('scanner and read-only admin controls exist', () => {
   assert.match(client, /navigator\.mediaDevices\.getUserMedia/);
   assert.match(client, /format:'tsv'/);
   assert.match(client, /resetTraining/);
+  assert.match(html, /id="admin-login" class="login-card"/);
+  assert.match(html, /app\.js\?v=20261005-1/);
+  assert.match(client, /admin-login'\)\.addEventListener\('submit'/);
   assert.match(fs.readFileSync(new URL('../api/index.js', import.meta.url), 'utf8'), /本番環境は初期化できません/);
   assert.match(schema, /one_active_session_per_store/);
 });

@@ -66,14 +66,14 @@
 
   <main id="admin-app" class="admin-shell hidden">
     <header class="admin-header"><div><p class="eyebrow">GIKADAISAI</p><h1>商品券データ</h1></div><a href="/">スキャナーへ</a></header>
-    <section id="admin-login" class="login-card">
+    <form id="admin-login" class="login-card">
       <h2>閲覧用ログイン</h2>
       <p>データの検索とCSV出力だけができます。画面からの編集はできません。</p>
       <label for="admin-pin">管理者PIN</label>
       <input id="admin-pin" type="password" inputmode="numeric" autocomplete="current-password">
-      <button id="admin-login-button" class="primary">データを表示</button>
+      <button id="admin-login-button" class="primary" type="submit">データを表示</button>
       <div id="admin-error" class="message error hidden" role="alert"></div>
-    </section>
+    </form>
     <section id="admin-dashboard" class="hidden">
       <div id="admin-summary" class="summary-cards"></div>
       <div id="training-tools" class="training-tools hidden"><div><strong>練習環境の初期化</strong><p>使用履歴と回収セッションを削除し、全商品券を未使用へ戻します。</p></div><button id="reset-training" class="danger compact">練習データを初期化</button></div>
@@ -103,6 +103,6 @@
   </div>
 
   <script src="/vendor/html5-qrcode.min.js"></script>
-  <script type="module" src="/app.js"></script>
+  <script type="module" src="/app.js?v=20261005-1"></script>
 </body>
 </html>
